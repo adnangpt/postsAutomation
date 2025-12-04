@@ -175,7 +175,7 @@ export default function AutomationPageClient({
             <div className="space-y-0.5">
               <Label>Enable Automation</Label>
               <p className="text-sm text-gray-500">
-                Turn on automated posting for this platform {settings.is_enabled.toString()}
+                Turn {settings.is_enabled ? 'OFF' : 'ON'} to {settings.is_enabled ? 'stop' : 'start'} automated posting
               </p>
             </div>
             <Switch
