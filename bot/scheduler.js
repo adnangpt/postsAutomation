@@ -15,18 +15,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Track last run times for each platform
-const lastRunTimes = {
-  x: null,
-  reddit: null,
-  quora: null
-};
+/**
+ * Get last run time from database
+ */
+async function getLastRunTime(platform) {
+  const { data, error } = await supabase
+    .from('automation_logs')
+    .select('created_at')
+    .eq('platform', platform)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return new Date(data.created_at).getTime();
+}
 
 /**
  * Check if enough time has passed since last run
  */
-function shouldRun(platform, frequencyMinutes) {
-  const lastRun = lastRunTimes[platform];
+async function shouldRun(platform, frequencyMinutes) {
+  const lastRun = await getLastRunTime(platform);
   if (!lastRun) return true; // Never run before
   
   const minutesSinceLastRun = (Date.now() - lastRun) / 1000 / 60;
@@ -90,7 +99,7 @@ async function checkAndRunPlatform(platform) {
 
     // Check if enough time has passed
     const frequencyMinutes = getFrequencyMinutes(settings.frequency);
-    if (!shouldRun(platform, frequencyMinutes)) {
+    if (!await shouldRun(platform, frequencyMinutes)) {
       return;
     }
 
@@ -115,9 +124,6 @@ async function checkAndRunPlatform(platform) {
 
     const result = await runBot(taskConfig);
     
-    // Update last run time (Success)
-    lastRunTimes[platform] = Date.now();
-
     // Log success
     console.log(`✅ ${platform.toUpperCase()}: Post successful!`);
     if (result.url) {
@@ -136,9 +142,6 @@ async function checkAndRunPlatform(platform) {
   } catch (error) {
     console.error(`❌ ${platform.toUpperCase()}: Error -`, error.message);
     
-    // Update last run time (Error) - prevent infinite retry loop
-    lastRunTimes[platform] = Date.now();
-
     // Log error
     await supabase.from('automation_logs').insert({
       platform,
