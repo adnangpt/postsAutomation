@@ -5,5 +5,5 @@
 [functions]
   node_bundler = "esbuild"
 
-[[functions.scheduled-post]]
+[functions."scheduled-post"]
   schedule = "@hourly"
