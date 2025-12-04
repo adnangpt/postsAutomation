@@ -1,32 +1,58 @@
-import { checkAndRunPlatform } from '../../bot/scheduler.js';
+import { createClient } from '@supabase/supabase-js';
 
-export default async (req) => {
-  // This function runs on a schedule (e.g. hourly) defined in netlify.toml
-  // It checks all platforms and runs them if they are due
-  
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export const handler = async (event, context) => {
   console.log('🤖 Netlify Scheduled Function: Checking automation...');
   
   try {
-    const results = await Promise.allSettled([
-      checkAndRunPlatform('x'),
-      checkAndRunPlatform('reddit'),
-      checkAndRunPlatform('quora')
-    ]);
-    
-    const errors = results
-      .filter(r => r.status === 'rejected')
-      .map(r => r.reason);
-      
-    if (errors.length > 0) {
-      console.error('❌ Some platforms failed:', errors);
+    // Get all enabled automation settings
+    const { data: settings, error } = await supabase
+      .from('automation_settings')
+      .select('*')
+      .eq('is_enabled', true);
+
+    if (error) {
+      console.error('Error fetching settings:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: error.message })
+      };
     }
-    
+
+    console.log(`Found ${settings?.length || 0} enabled platforms`);
+
+    // For each enabled platform, trigger the automation endpoint
+    const results = await Promise.allSettled(
+      (settings || []).map(async (setting) => {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://postsautomation.netlify.app'}/api/trigger-automation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: setting.platform })
+        });
+        return response.json();
+      })
+    );
+
     console.log('✅ Automation check complete');
-    return new Response("Automation check complete");
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        message: 'Automation check complete',
+        results: results.map(r => r.status === 'fulfilled' ? r.value : r.reason)
+      })
+    };
     
   } catch (error) {
     console.error('❌ Fatal scheduler error:', error);
-    return new Response("Scheduler error", { status: 500 });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
 
