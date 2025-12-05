@@ -1,0 +1,9 @@
+services:
+  - type: worker
+    name: automarketer-scheduler
+    env: node
+    buildCommand: npm install
+    startCommand: node bot/scheduler.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
