@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "bot": "node bot/run.js",
-    "automation": "node scripts/start-automation.js"
+    "automation": "node scripts/start-automation.js",
+    "scheduler": "node bot/scheduler.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
