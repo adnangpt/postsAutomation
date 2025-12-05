@@ -1,0 +1,14 @@
+app:
+  name: automarketer-scheduler
+  services:
+    - name: scheduler
+      type: worker
+      git:
+        branch: main
+      instance_type: nano
+      regions:
+        - fra
+      env:
+        - key: NODE_VERSION
+          value: "20"
+      run: node bot/scheduler.js
