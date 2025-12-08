@@ -1,0 +1,28 @@
+name: Auto Post to X
+
+on:
+  schedule:
+    # Runs every 2 hours
+    - cron: '0 */2 * * *'
+  
+  # Allows manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Automation
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/trigger-automation" \
+            -H "Content-Type: application/json" \
+            -d '{"platform":"x"}'
+      
+      - name: Log Success
+        if: success()
+        run: echo "✅ Automation triggered successfully at $(date)"
+      
+      - name: Log Failure
+        if: failure()
+        run: echo "❌ Automation failed at $(date)"
